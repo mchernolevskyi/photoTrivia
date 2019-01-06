@@ -2,8 +2,8 @@ package com.makswinner.phototrivia.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * @author Dr Maksym Chernolevskyi
  */
+
+@Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Value(value = "${user.admin.name}")
@@ -30,21 +32,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private static String ADMIN_ROLE = "ADMIN";
     private static String GUEST_ROLE = "GUEST";
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-                .authorizeRequests()
-                    .antMatchers("/css/**").permitAll()
-                    .antMatchers("/**").hasRole(ADMIN_ROLE)
-                    .and()
-                .httpBasic();
-//                .formLogin()
-//                    .loginPage("/login")
-//                    .permitAll()
-//                    .and()
-//                .logout()
-//                    .permitAll();
-    }
+    //TODO roles and albums
+//    @Override
+//    protected void configure(HttpSecurity http) throws Exception {
+//        http
+//                .authorizeRequests()
+//                    .antMatchers("/css/**").permitAll()
+//                    .antMatchers("/**").hasRole(ADMIN_ROLE);
+//                //.and()
+//                //.httpBasic();
+////                .formLogin()
+////                    .loginPage("/login")
+////                    .permitAll()
+////                    .and()
+////                .logout()
+////                    .permitAll();
+//    }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
