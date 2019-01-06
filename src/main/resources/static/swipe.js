@@ -26,12 +26,15 @@ function handleTouchMove(evt) {
     if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
         if ( xDiff > 0 ) {
             /* left swipe */
+            goNext();
         } else {
             /* right swipe */
+            goPrevious();
         }
     } else {
         if ( yDiff > 0 ) {
             /* up swipe */
+            goToAlbums();
         } else {
             /* down swipe */
         }

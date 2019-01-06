@@ -10,17 +10,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +30,9 @@ import java.util.stream.Collectors;
 public class PhotoController implements WebMvcConfigurer {
     @Value(value = "${albums.path}")
     private String albumsPathRaw;
+
+    @Value(value = "${rendering.title}")
+    private String renderingTitle;
 
     @Value(value = "${rendering.bgcolor}")
     private String renderingBgcolor;
@@ -51,6 +53,9 @@ public class PhotoController implements WebMvcConfigurer {
     private String baseGalleryDir;
     private List<String> ignoreExtensions = new LinkedList<>();
     private List<String> videoExtensions = new LinkedList<>();
+
+    private static int MEDIA_HEIGHT = 93;
+    private static int MEDIA_HEIGHT_FULLSCREEN = 98;
 
     @PostConstruct
     private void init() {
@@ -74,32 +79,39 @@ public class PhotoController implements WebMvcConfigurer {
 
     @RequestMapping("/")
     public String showAll() {
-        StringBuilder albumsDescription = new StringBuilder();
-        albumsDescription.append(getHeader());
-        Arrays.asList(findAlbums()).stream().sorted().forEach(
-                album -> albumsDescription.append(getAlbumLink(album)));
-        return albumsDescription.toString();
+        return renderAlbums(findAlbums());
     }
 
     @RequestMapping("/album/{album}")
-    public String showAlbum(@PathVariable("album") String album) {
+    public String showAlbum(@PathVariable("album") String album, HttpServletResponse response) {
         //TODO show list of photos
-        String photo = findNextPhoto(album, null);
-        return renderImage(album, photo);
+        try {
+            String photo = findNextPhoto(album, null);
+            return renderImage(album, photo, false);
+        } catch (Exception e) {
+            try {
+                response.sendRedirect("/");//fallback
+            } catch (IOException e1) {
+                //silently swallow
+            }
+            return null;
+        }
     }
 
     @RequestMapping("/photo/{album}/{photo}")
     public String showPhoto(@PathVariable("album") String album,
-                            @PathVariable("photo") String photo) {
-        return renderImage(album, photo);
+                            @PathVariable("photo") String photo,
+                            @RequestParam(value = "fullScreen", required = false) boolean fullScreen) {
+        return renderImage(album, photo, fullScreen);
     }
 
-    private String [] findAlbums() {
+    private List<String> findAlbums() {
         //TODO nested folders
         File file = new File(albumsPath);
         String[] directories = file.list(
                 (current, name) -> new File(current, name).isDirectory());
-        return directories;
+        return directories != null && directories.length > 0 ?
+                Arrays.asList(directories).stream().sorted().collect(Collectors.toList()) : new ArrayList<>();
     }
 
     private String [] findAlbumPhotos(String album) {
@@ -113,6 +125,7 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private int getOrientation(File imageFile) {
+        //TODO proper scaling, extract height width and divide
         int orientation = 0;
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(imageFile);
@@ -167,19 +180,31 @@ public class PhotoController implements WebMvcConfigurer {
 
     //PHP style on!
 
-    private String renderImage(String album, String photo) {
+    private String renderAlbums(List<String> albums) {
+        StringBuilder albumsDescription = new StringBuilder();
+        albumsDescription.append(getHeader());
+        albums.forEach(album -> albumsDescription.append(getAlbumLink(album)));
+        return albumsDescription.toString();
+    }
+
+    private String renderImage(String album, String photo, boolean fullScreen) {
         String previousPhoto = findPreviousPhoto(album, photo);
         String nextPhoto = findNextPhoto(album, photo);
         File imageFile = new File(albumsPath + album + File.separator + photo);
         int orientation = getOrientation(imageFile);
         return getHeader()
-                + getMediaHTML(album, photo, orientation)
-                + getPreviousPhotoLink(album, previousPhoto)
-                + get10Nbsp() + get10Nbsp() + get10Nbsp()
-                + getAllAlbumsLink()
-                + get10Nbsp() + get10Nbsp() + get10Nbsp()
-                + getNextPhotoLink(album, nextPhoto)
-                + getJavaScript(album, previousPhoto, nextPhoto);
+                + getMediaHTML(album, photo, orientation, fullScreen)
+                + (fullScreen ? "" : (
+                    getPreviousPhotoLink(album, previousPhoto)
+                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
+                    + getFullScreenPhotoLink(album, photo)
+                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
+                    + getAllAlbumsLink()
+                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
+                    + getNextPhotoLink(album, nextPhoto)
+                    )
+                )
+                + getJavaScript(album, photo, previousPhoto, nextPhoto, fullScreen);
     }
 
     private String get10Nbsp() {
@@ -187,36 +212,56 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private String getHeader() {
-        return "<html><head><title>photoTrivia</title><head>"
+        return "<html><head>"
+                + "<title>" + renderingTitle + "</title><head>"
                 + "<body bgcolor=" + renderingBgcolor
                 + " link=" + renderingLinkcolor
                 + " vlink=" + renderingVLinkcolor
-                + " onload=init()><center><br>";
+                + " onload=init()><center>\n";
     }
 
-    private String getJavaScript(String album, String previousPhoto, String nextPhoto) {
+    private String getJavaScript(String album, String photo, String previousPhoto, String nextPhoto, boolean fullScreen) {
         return "<script>"
                 + "function init() {\n"
                 + "  document.body.addEventListener(\"keydown\", function ee(event) {\n"
                 + "if (event.keyCode === 32) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto) + "\");\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
                 + "}\n"
                 + "if (event.keyCode === 37) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, previousPhoto) + "\");\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, previousPhoto, fullScreen) + "\");\n"
                 + "}\n"
                 + "if (event.keyCode === 39) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto) + "\");\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
+                + "}\n"
+                + "if (event.keyCode === 27) {\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, photo, false) + "\");\n"
+                + "}\n"
+                + "if (event.keyCode === 70) {\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, photo, true) + "\");\n"
                 + "}\n"
                 + "if (event.keyCode === 38) {\n"
                 + "window.location.replace(\"/\");\n"
                 + "}\n"
                 + "  });\n"
+                + (fullScreen ?
+                    "document.body.addEventListener(\"touchstart\", handleTouchStart);\n"
+                    + "document.body.addEventListener(\"touchmove\", handleTouchMove);\n"
+                    : "")
                 + "}"
-                + "</script>";
+                + "function goNext() {\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
+                + "}"
+                + "function goPrevious() {\n"
+                + "window.location.replace(\"" + getPhotoUrl(album, previousPhoto, fullScreen) + "\");\n"
+                + "}"
+                + "function goToAlbums() {\n"
+                + "window.location.replace(\"/\");\n"
+                + "}"
+                + "</script><script src=\"/swipe.js\"></script>";
     }
 
-    private String getPhotoUrl(String album, String photo) {
-        return "/photo/" + album + "/" + photo;
+    private String getPhotoUrl(String album, String photo, boolean fullScreen) {
+        return "/photo/" + album + "/" + photo + (fullScreen ? "?fullScreen=true" : "");
     }
 
     private String getAllAlbumsLink() {
@@ -227,12 +272,16 @@ public class PhotoController implements WebMvcConfigurer {
         return createLink("/album/" + album, album) + "<br>";
     }
 
+    private String getFullScreenPhotoLink(String album, String photo) {
+        return createLink(getPhotoUrl(album, photo, true),"View full screen");
+    }
+
     private String getNextPhotoLink(String album, String nextPhoto) {
-        return createLink(getPhotoUrl(album, nextPhoto),"Next&nbsp;&nbsp;&nbsp;>");
+        return createLink(getPhotoUrl(album, nextPhoto, false),"Next&nbsp;&nbsp;&nbsp;>");
     }
 
     private String getPreviousPhotoLink(String album, String previousPhoto) {
-        return createLink(getPhotoUrl(album, previousPhoto),"<&nbsp;&nbsp;&nbsp;Previous");
+        return createLink(getPhotoUrl(album, previousPhoto, false),"<&nbsp;&nbsp;&nbsp;Previous");
     }
 
     private String createLink(String url, String label) {
@@ -243,9 +292,10 @@ public class PhotoController implements WebMvcConfigurer {
         return baseGalleryDir + "/" + album + "/" + photo;
     }
 
-    private String getMediaHTML(String album, String photo, int orientation) {
+    private String getMediaHTML(String album, String photo, int orientation, boolean fullScreen) {
+        int mediaHeight = fullScreen ? MEDIA_HEIGHT_FULLSCREEN : MEDIA_HEIGHT;
         if (videoExtensions.contains(getFilenameExtensionLowerCase(photo))) {
-            return "<video height=90% controls=controls>"
+            return "<video height=" + mediaHeight + "% controls=controls>"
                     + "<source src=/" + getMediaRealUrl(album, photo) + " type=video/mp4>"
                     + "</video><br>";
         }
@@ -253,7 +303,8 @@ public class PhotoController implements WebMvcConfigurer {
             return "<img src=/" + getMediaRealUrl(album, photo)
                     + (orientation == 6 ? "  style=\"transform: rotate(90deg) scale(.67);\"" : "")
                     + (orientation == 8 ? "  style=\"transform: rotate(-90deg) scale(.67);\"" : "")
-                    + " height=90%><br>";
+                    + (orientation == 3 ? "  style=\"transform: rotate(180deg);\"" : "")
+                    + " height=" + mediaHeight + "%><br>";
         }
     }
 }
