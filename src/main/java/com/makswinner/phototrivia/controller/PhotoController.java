@@ -8,6 +8,8 @@ import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +21,7 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,8 +57,13 @@ public class PhotoController implements WebMvcConfigurer {
     private List<String> ignoreExtensions = new LinkedList<>();
     private List<String> videoExtensions = new LinkedList<>();
 
-    private static int MEDIA_HEIGHT = 93;
-    private static int MEDIA_HEIGHT_FULLSCREEN = 98;
+    private static final int MEDIA_HEIGHT = 93;
+    private static final int MEDIA_HEIGHT_FULLSCREEN = 98;
+
+    private static final String PHOTO_TEMPLATE = "photo";
+    private static final String ALBUMS_TEMPLATE = "albums";
+
+    private static final String URL_ALL_ALBUMS = "/";
 
     @PostConstruct
     private void init() {
@@ -192,96 +200,70 @@ public class PhotoController implements WebMvcConfigurer {
         String nextPhoto = findNextPhoto(album, photo);
         File imageFile = new File(albumsPath + album + File.separator + photo);
         int orientation = getOrientation(imageFile);
-        return getHeader()
-                + getMediaHTML(album, photo, orientation, fullScreen)
-                + (fullScreen ? "" : (
-                    getPreviousPhotoLink(album, previousPhoto)
-                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
-                    + getFullScreenPhotoLink(album, photo)
-                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
-                    + getAllAlbumsLink()
-                    + get10Nbsp() + get10Nbsp() + get10Nbsp()
-                    + getNextPhotoLink(album, nextPhoto)
-                    )
-                )
-                + getJavaScript(album, photo, previousPhoto, nextPhoto, fullScreen);
+        String mediaRealUrl = getMediaRealUrl(album, photo);
+        int mediaHeight = fullScreen ? MEDIA_HEIGHT_FULLSCREEN : MEDIA_HEIGHT;
+        String mediaStyle = getMediaStyle(orientation);
+
+        boolean video = videoExtensions.contains(getFilenameExtensionLowerCase(photo));
+
+        String template = getTemplate(PHOTO_TEMPLATE);
+        return template
+                .replace("%(title)", renderingTitle)
+                .replace("%(bgcolor)", renderingBgcolor)
+                .replace("%(linkcolor)", renderingLinkcolor)
+                .replace("%(vlinkcolor)", renderingVLinkcolor)
+                .replace("%(mediaRealUrl)", "/" + mediaRealUrl)
+                .replace("%(mediaStyle)", mediaStyle)
+                .replace("%(mediaHeight)", "" + mediaHeight)
+                .replace("%(previousMediaUrl)", getPhotoUrl(album, previousPhoto, fullScreen))
+                .replace("%(mediaUrlFullScreen)", getPhotoUrl(album, photo, true))
+                .replace("%(allAlbumsUrl)", URL_ALL_ALBUMS)
+                .replace("%(nextMediaUrl)", getPhotoUrl(album, nextPhoto, fullScreen))
+                .replace("%(mediaUrlNoFullScreen)", getPhotoUrl(album, photo, false))
+                .replace("%(commentNotFullScreen)", fullScreen ? "" : "//")
+                .replace("%(commentFullScreenHtmlStart)", fullScreen ? "<!--" : "")
+                .replace("%(commentFullScreenHtmlEnd)", fullScreen ? "-->" : "")
+                .replace("%(commentIfVideoHtmlStart)", video ? "<!--" : "")
+                .replace("%(commentIfVideoHtmlEnd)", video ? "-->" : "")
+                .replace("%(commentIfPhotoHtmlStart)", !video ? "<!--" : "")
+                .replace("%(commentIfPhotoHtmlEnd)", !video ? "-->" : "");
     }
 
-    private String get10Nbsp() {
-        return "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+    String getMediaStyle(int orientation) {
+        if (orientation == 6)
+            return "style=\"transform: rotate(90deg) scale(.67);\"";
+        if (orientation == 8)
+            return "style=\"transform: rotate(-90deg) scale(.67);\"";
+        if (orientation == 3)
+            return "style=\"transform: rotate(180deg);\"";
+        return "";
+    }
+
+    private String getTemplate(String template) {
+        try {
+            return StreamUtils.copyToString(
+                    new ClassPathResource("template" + File.separator + template + ".html").getInputStream(),
+                    Charset.defaultCharset());
+        } catch (IOException e) {
+            return "";//silently swallow
+        }
     }
 
     private String getHeader() {
         return "<html><head>"
-                + "<title>" + renderingTitle + "</title><head>"
+                + "<title>" + renderingTitle + "</title></head>"
                 + "<body bgcolor=" + renderingBgcolor
                 + " link=" + renderingLinkcolor
                 + " vlink=" + renderingVLinkcolor
                 + " onload=init()><center>\n";
     }
 
-    private String getJavaScript(String album, String photo, String previousPhoto, String nextPhoto, boolean fullScreen) {
-        return "<script>"
-                + "function init() {\n"
-                + "  document.body.addEventListener(\"keydown\", function ee(event) {\n"
-                + "if (event.keyCode === 32) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
-                + "}\n"
-                + "if (event.keyCode === 37) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, previousPhoto, fullScreen) + "\");\n"
-                + "}\n"
-                + "if (event.keyCode === 39) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
-                + "}\n"
-                + "if (event.keyCode === 27) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, photo, false) + "\");\n"
-                + "}\n"
-                + "if (event.keyCode === 70) {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, photo, true) + "\");\n"
-                + "}\n"
-                + "if (event.keyCode === 38) {\n"
-                + "window.location.replace(\"/\");\n"
-                + "}\n"
-                + "  });\n"
-                + (fullScreen ?
-                    "document.body.addEventListener(\"touchstart\", handleTouchStart);\n"
-                    + "document.body.addEventListener(\"touchmove\", handleTouchMove);\n"
-                    : "")
-                + "}"
-                + "function goNext() {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, nextPhoto, fullScreen) + "\");\n"
-                + "}"
-                + "function goPrevious() {\n"
-                + "window.location.replace(\"" + getPhotoUrl(album, previousPhoto, fullScreen) + "\");\n"
-                + "}"
-                + "function goToAlbums() {\n"
-                + "window.location.replace(\"/\");\n"
-                + "}"
-                + "</script><script src=\"/swipe.js\"></script>";
-    }
-
     private String getPhotoUrl(String album, String photo, boolean fullScreen) {
         return "/photo/" + album + "/" + photo + (fullScreen ? "?fullScreen=true" : "");
     }
 
-    private String getAllAlbumsLink() {
-        return createLink("/", "Albums");
-    }
-
     private String getAlbumLink(String album) {
         return createLink("/album/" + album, album) + "<br>";
-    }
-
-    private String getFullScreenPhotoLink(String album, String photo) {
-        return createLink(getPhotoUrl(album, photo, true),"View full screen");
-    }
-
-    private String getNextPhotoLink(String album, String nextPhoto) {
-        return createLink(getPhotoUrl(album, nextPhoto, false),"Next&nbsp;&nbsp;&nbsp;>");
-    }
-
-    private String getPreviousPhotoLink(String album, String previousPhoto) {
-        return createLink(getPhotoUrl(album, previousPhoto, false),"<&nbsp;&nbsp;&nbsp;Previous");
     }
 
     private String createLink(String url, String label) {
@@ -292,19 +274,4 @@ public class PhotoController implements WebMvcConfigurer {
         return baseGalleryDir + "/" + album + "/" + photo;
     }
 
-    private String getMediaHTML(String album, String photo, int orientation, boolean fullScreen) {
-        int mediaHeight = fullScreen ? MEDIA_HEIGHT_FULLSCREEN : MEDIA_HEIGHT;
-        if (videoExtensions.contains(getFilenameExtensionLowerCase(photo))) {
-            return "<video height=" + mediaHeight + "% controls=controls>"
-                    + "<source src=/" + getMediaRealUrl(album, photo) + " type=video/mp4>"
-                    + "</video><br>";
-        }
-        else {
-            return "<img src=/" + getMediaRealUrl(album, photo)
-                    + (orientation == 6 ? "  style=\"transform: rotate(90deg) scale(.67);\"" : "")
-                    + (orientation == 8 ? "  style=\"transform: rotate(-90deg) scale(.67);\"" : "")
-                    + (orientation == 3 ? "  style=\"transform: rotate(180deg);\"" : "")
-                    + " height=" + mediaHeight + "%><br>";
-        }
-    }
 }
