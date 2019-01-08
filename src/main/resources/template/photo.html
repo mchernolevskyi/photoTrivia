@@ -11,7 +11,7 @@
     <video height="%(mediaHeight)%" controls=controls><source src="%(mediaRealUrl)" type=video/mp4></video>
     %(commentIfPhotoHtmlEnd)
     <br>
-    %(commentFullScreenHtmlStart)
+    %(commentIfFullScreenHtmlStart)
     <a href="%(previousMediaUrl)"><&nbsp;&nbsp;&nbsp;Previous</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -25,7 +25,7 @@
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(nextMediaUrl)">Next&nbsp;&nbsp;&nbsp;></a>
-    %(commentFullScreenHtmlEnd)
+    %(commentIfFullScreenHtmlEnd)
     <script>
         function init() {
             document.body.addEventListener("keydown", function ee(event) {
@@ -48,8 +48,8 @@
                     window.location.replace("%(allAlbumsUrl)");
                 }
             });
-            %(commentNotFullScreen) document.body.addEventListener("touchstart", handleTouchStart);
-            %(commentNotFullScreen) document.body.addEventListener("touchmove", handleTouchMove);
+            %(commentIfNotFullScreenJavaScript) document.body.addEventListener("touchstart", handleTouchStart);
+            %(commentIfNotFullScreenJavaScript) document.body.addEventListener("touchmove", handleTouchMove);
         }
         function goNext() {
             window.location.replace("%(nextMediaUrl)");
