@@ -1,0 +1,67 @@
+<html>
+<head>
+    <title>%(title)</title>
+</head>
+<body bgcolor="%(bgcolor)" link="%(linkcolor)" vlink="%(vlinkcolor)" onload=init()>
+<center>
+    %(commentIfVideoHtmlStart)
+    <img src="%(mediaRealUrl)" %(mediaStyle) height="%(mediaHeight)%">
+    %(commentIfVideoHtmlEnd)
+    %(commentIfPhotoHtmlStart)
+    <video height="%(mediaHeight)%" controls=controls><source src="%(mediaRealUrl)" type=video/mp4></video>
+    %(commentIfPhotoHtmlEnd)
+    <br>
+    %(commentFullScreenHtmlStart)
+    <a href="%(previousMediaUrl)"><&nbsp;&nbsp;&nbsp;Previous</a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(mediaUrlFullScreen)">View full screen</a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(allAlbumsUrl)">Albums</a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(nextMediaUrl)">Next&nbsp;&nbsp;&nbsp;></a>
+    %(commentFullScreenHtmlEnd)
+    <script>
+        function init() {
+            document.body.addEventListener("keydown", function ee(event) {
+                if (event.keyCode === 32) {
+                    window.location.replace("%(nextMediaUrl)");
+                }
+                if (event.keyCode === 37) {
+                    window.location.replace("%(previousMediaUrl)");
+                }
+                if (event.keyCode === 39) {
+                    window.location.replace("%(nextMediaUrl)");
+                }
+                if (event.keyCode === 27) {
+                    window.location.replace("%(mediaUrlNoFullScreen)");
+                }
+                if (event.keyCode === 70) {
+                    window.location.replace("%(mediaUrlFullScreen)");
+                }
+                if (event.keyCode === 38) {
+                    window.location.replace("%(allAlbumsUrl)");
+                }
+            });
+            %(commentNotFullScreen) document.body.addEventListener("touchstart", handleTouchStart);
+            %(commentNotFullScreen) document.body.addEventListener("touchmove", handleTouchMove);
+        }
+        function goNext() {
+            window.location.replace("%(nextMediaUrl)");
+        }
+        function goPrevious() {
+            window.location.replace("%(previousMediaUrl)");
+        }
+        function goToAlbums() {
+            window.location.replace("%(allAlbumsUrl)");
+        }
+    </script>
+    <script src="/swipe.js"></script>
+</center>
+</body>
+</html>
