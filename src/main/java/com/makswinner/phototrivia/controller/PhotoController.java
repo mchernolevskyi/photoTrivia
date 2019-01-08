@@ -23,9 +23,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -57,16 +59,17 @@ public class PhotoController implements WebMvcConfigurer {
 
     private String albumsPath;
     private String baseGalleryDir;
-    private List<String> ignoreExtensions = new LinkedList<>();
-    private List<String> videoExtensions = new LinkedList<>();
-    private static String photoTemplateWithHeader;
-    private static String albumsTemplateWithHeader;
-    private static String albumPhotosTemplateWithHeader;
+    private final List<String> ignoreExtensions = new LinkedList<>();
+    private final List<String> videoExtensions = new LinkedList<>();
+    private String photoTemplateWithHeader;
+    private String albumsTemplateWithHeader;
+    private String albumPhotosTemplateWithHeader;
 
     private static final int MEDIA_HEIGHT = 93;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 97;
     private static final String URL_ALL_ALBUMS = "/";
     private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
+    private static final Map<String, List<String>> ALBUM_PHOTOS = new HashMap<>();
 
     @PostConstruct
     private void init() {
@@ -74,9 +77,9 @@ public class PhotoController implements WebMvcConfigurer {
         baseGalleryDir = getBaseGalleryDir(albumsPathRaw);
         ignoreExtensions.addAll(Arrays.asList(ignoreExtensionsRaw.split(",")));
         videoExtensions.addAll(Arrays.asList(videoExtensionsRaw.split(",")));
-        photoTemplateWithHeader = getTemplateWithHeader(getTemplate("template/photo.html"));
-        albumsTemplateWithHeader = getTemplateWithHeader(getTemplate("template/albums.html"));
-        albumPhotosTemplateWithHeader = getTemplateWithHeader(getTemplate("template/albumPhotos.html"));
+        photoTemplateWithHeader = getTemplateWithHeader("template/photo.html");
+        albumsTemplateWithHeader = getTemplateWithHeader("template/albums.html");
+        albumPhotosTemplateWithHeader = getTemplateWithHeader("template/albumPhotos.html");
     }
 
     private String getBaseGalleryDir(String albumsPath) {
@@ -92,8 +95,8 @@ public class PhotoController implements WebMvcConfigurer {
         }
     }
 
-    private String getTemplateWithHeader(String template) {
-        return template
+    private String getTemplateWithHeader(String templatePath) {
+        return getTemplate(templatePath)
                 .replace("%(title)", renderingTitle)
                 .replace("%(bgcolor)", renderingBgcolor)
                 .replace("%(linkcolor)", renderingLinkcolor)
@@ -108,7 +111,7 @@ public class PhotoController implements WebMvcConfigurer {
 
     @RequestMapping(URL_ALL_ALBUMS)
     public String showAll() {
-        return renderAlbums(findAlbums());
+        return renderAlbums();
     }
 
     @RequestMapping("/album/{album}")
@@ -121,7 +124,7 @@ public class PhotoController implements WebMvcConfigurer {
                 response.sendRedirect(getPhotoUrl(album, photo, false));
                 return null;
             } else {
-                return renderAlbumPhotos(album, findAlbumPhotos(album));
+                return renderAlbumPhotos(album);
             }
         } catch (Exception e) {
             try {
@@ -142,21 +145,27 @@ public class PhotoController implements WebMvcConfigurer {
 
     private List<String> findAlbums() {
         //TODO nested folders
-        File file = new File(albumsPath);
-        String[] directories = file.list(
+        String[] directories = new File(albumsPath).list(
                 (current, name) -> new File(current, name).isDirectory());
         return directories != null && directories.length > 0 ?
                 Arrays.asList(directories).stream().sorted().collect(Collectors.toList()) : new LinkedList<>();
     }
 
     private List<String> findAlbumPhotos(String album) {
-        File dir = new File(albumsPath + album);
-        String [] files = dir.list((current, name) -> {
-            File imageFile = new File(current, name);
-            return imageFile.isFile()
-                    && !ignoreExtensions.contains(getFilenameExtensionLowerCase(name));
-        });
-        return Arrays.asList(files).stream().sorted().collect(Collectors.toList());
+        List<String> photos = ALBUM_PHOTOS.get(album);
+        if (photos != null) {
+            return photos;
+        } else {
+            File dir = new File(albumsPath + album);
+            String[] files = dir.list((current, name) -> {
+                File imageFile = new File(current, name);
+                return imageFile.isFile()
+                        && !ignoreExtensions.contains(getFilenameExtensionLowerCase(name));
+            });
+            photos = Arrays.asList(files).stream().sorted().collect(Collectors.toList());
+            ALBUM_PHOTOS.put(album, photos);
+            return photos;
+        }
     }
 
     private int getOrientation(String album, String photo) {
@@ -212,23 +221,23 @@ public class PhotoController implements WebMvcConfigurer {
         }
     }
 
-    private String renderAlbums(List<String> albums) {
-        return albumsTemplateWithHeader.replace("%(albums)", getAlbumsDescription(albums));
+    private String renderAlbums() {
+        return albumsTemplateWithHeader.replace("%(albums)", getAlbumsDescription());
     }
 
-    private String getAlbumsDescription(List<String> albums) {
+    private String getAlbumsDescription() {
         StringBuilder description = new StringBuilder();
-        albums.forEach(album -> description.append(getAlbumLink(album)));
+        findAlbums().forEach(album -> description.append(getAlbumLink(album)));
         return description.toString();
     }
 
-    private String renderAlbumPhotos(String album, List<String> photos) {
-        return albumPhotosTemplateWithHeader.replace("%(photos)", getAlbumPhotosDescription(album, photos));
+    private String renderAlbumPhotos(String album) {
+        return albumPhotosTemplateWithHeader.replace("%(photos)", getAlbumPhotosDescription(album));
     }
 
-    private String getAlbumPhotosDescription(String album, List<String> photos) {
+    private String getAlbumPhotosDescription(String album) {
         StringBuilder description = new StringBuilder();
-        photos.forEach(photo -> description.append(getPhotoLink(album, photo)));
+        findAlbumPhotos(album).forEach(photo -> description.append(getPhotoLink(album, photo)));
         return description.toString();
     }
 
