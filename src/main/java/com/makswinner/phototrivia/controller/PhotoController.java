@@ -22,7 +22,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -56,26 +59,45 @@ public class PhotoController implements WebMvcConfigurer {
     private String baseGalleryDir;
     private List<String> ignoreExtensions = new LinkedList<>();
     private List<String> videoExtensions = new LinkedList<>();
+    private static String photoTemplateWithHeader;
+    private static String albumsTemplateWithHeader;
+    private static String albumPhotosTemplateWithHeader;
 
     private static final int MEDIA_HEIGHT = 93;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 97;
-    private static final String PHOTO_TEMPLATE = "photo";
-    private static final String ALBUMS_TEMPLATE = "albums";
-    private static final String TEMPLATE_FOLDER = "template";
     private static final String URL_ALL_ALBUMS = "/";
+    private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
 
     @PostConstruct
     private void init() {
         albumsPath = albumsPathRaw + File.separator;
         baseGalleryDir = getBaseGalleryDir(albumsPathRaw);
-        ignoreExtensions.addAll(
-                Arrays.asList(ignoreExtensionsRaw.split(",")));
-        videoExtensions.addAll(
-                Arrays.asList(videoExtensionsRaw.split(",")));
+        ignoreExtensions.addAll(Arrays.asList(ignoreExtensionsRaw.split(",")));
+        videoExtensions.addAll(Arrays.asList(videoExtensionsRaw.split(",")));
+        photoTemplateWithHeader = getTemplateWithHeader(getTemplate("template/photo.html"));
+        albumsTemplateWithHeader = getTemplateWithHeader(getTemplate("template/albums.html"));
+        albumPhotosTemplateWithHeader = getTemplateWithHeader(getTemplate("template/albumPhotos.html"));
     }
 
     private String getBaseGalleryDir(String albumsPath) {
         return albumsPath.substring(albumsPath.lastIndexOf(File.separator) + 1);
+    }
+
+    private String getTemplate(String templatePath) {
+        try {
+            return StreamUtils.copyToString(
+                    new ClassPathResource(templatePath).getInputStream(), Charset.defaultCharset());
+        } catch (IOException e) {
+            return "";//silently swallow
+        }
+    }
+
+    private String getTemplateWithHeader(String template) {
+        return template
+                .replace("%(title)", renderingTitle)
+                .replace("%(bgcolor)", renderingBgcolor)
+                .replace("%(linkcolor)", renderingLinkcolor)
+                .replace("%(vlinkcolor)", renderingVLinkcolor);
     }
 
     @Override
@@ -90,11 +112,17 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     @RequestMapping("/album/{album}")
-    public String showAlbum(@PathVariable("album") String album, HttpServletResponse response) {
-        //TODO show list of photos
+    public String showAlbum(@PathVariable("album") String album,
+                            @RequestParam(value = "list", required = false) boolean list,
+                            HttpServletResponse response) {
         try {
-            String photo = findNextPhoto(album, null);
-            return renderImage(album, photo, false);
+            if (!list) {
+                String photo = findNextPhoto(album, null);
+                response.sendRedirect(getPhotoUrl(album, photo, false));
+                return null;
+            } else {
+                return renderAlbumPhotos(album, findAlbumPhotos(album));
+            }
         } catch (Exception e) {
             try {
                 response.sendRedirect(URL_ALL_ALBUMS);//fallback
@@ -109,7 +137,7 @@ public class PhotoController implements WebMvcConfigurer {
     public String showPhoto(@PathVariable("album") String album,
                             @PathVariable("photo") String photo,
                             @RequestParam(value = "fullScreen", required = false) boolean fullScreen) {
-        return renderImage(album, photo, fullScreen);
+        return renderPhoto(album, photo, fullScreen);
     }
 
     private List<String> findAlbums() {
@@ -118,7 +146,7 @@ public class PhotoController implements WebMvcConfigurer {
         String[] directories = file.list(
                 (current, name) -> new File(current, name).isDirectory());
         return directories != null && directories.length > 0 ?
-                Arrays.asList(directories).stream().sorted().collect(Collectors.toList()) : new ArrayList<>();
+                Arrays.asList(directories).stream().sorted().collect(Collectors.toList()) : new LinkedList<>();
     }
 
     private List<String> findAlbumPhotos(String album) {
@@ -185,29 +213,29 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private String renderAlbums(List<String> albums) {
-        return getTemplateWithHeader(ALBUMS_TEMPLATE)
-                .replace("%(albums)", getAlbumsDescription(albums));
-    }
-
-    private String getTemplateWithHeader(String templateName) {
-        String template = getTemplate(templateName);
-        return template
-                .replace("%(title)", renderingTitle)
-                .replace("%(bgcolor)", renderingBgcolor)
-                .replace("%(linkcolor)", renderingLinkcolor)
-                .replace("%(vlinkcolor)", renderingVLinkcolor);
+        return albumsTemplateWithHeader.replace("%(albums)", getAlbumsDescription(albums));
     }
 
     private String getAlbumsDescription(List<String> albums) {
-        StringBuilder albumsDescription = new StringBuilder();
-        albums.forEach(album -> albumsDescription.append(getAlbumLink(album)));
-        return albumsDescription.toString();
+        StringBuilder description = new StringBuilder();
+        albums.forEach(album -> description.append(getAlbumLink(album)));
+        return description.toString();
     }
 
-    private String renderImage(String album, String photo, boolean fullScreen) {
+    private String renderAlbumPhotos(String album, List<String> photos) {
+        return albumPhotosTemplateWithHeader.replace("%(photos)", getAlbumPhotosDescription(album, photos));
+    }
+
+    private String getAlbumPhotosDescription(String album, List<String> photos) {
+        StringBuilder description = new StringBuilder();
+        photos.forEach(photo -> description.append(getPhotoLink(album, photo)));
+        return description.toString();
+    }
+
+    private String renderPhoto(String album, String photo, boolean fullScreen) {
         int mediaHeight = fullScreen ? MEDIA_HEIGHT_FULLSCREEN : MEDIA_HEIGHT;
         boolean video = videoExtensions.contains(getFilenameExtensionLowerCase(photo));
-        return getTemplateWithHeader(PHOTO_TEMPLATE)
+        return photoTemplateWithHeader
                 .replace("%(mediaRealUrl)", getMediaRealUrl(album, photo))
                 .replace("%(mediaStyle)", getMediaStyle(getOrientation(album, photo)))
                 .replace("%(mediaHeight)", "" + mediaHeight)
@@ -215,6 +243,7 @@ public class PhotoController implements WebMvcConfigurer {
                 .replace("%(mediaUrlFullScreen)", getPhotoUrl(album, photo, true))
                 .replace("%(nextMediaUrl)", getPhotoUrl(album, findNextPhoto(album, photo), fullScreen))
                 .replace("%(mediaUrlNoFullScreen)", getPhotoUrl(album, photo, false))
+                .replace("%(albumPhotos)", getAlbumPhotosUrl(album))
                 .replace("%(allAlbumsUrl)", URL_ALL_ALBUMS)
                 .replace("%(commentIfNotFullScreenJavaScript)", fullScreen ? "" : "//")
                 .replace("%(commentIfFullScreenHtmlStart)", fullScreen ? "<!--" : "")
@@ -225,18 +254,12 @@ public class PhotoController implements WebMvcConfigurer {
                 .replace("%(commentIfPhotoHtmlEnd)", !video ? "-->" : "");
     }
 
-    private String getTemplate(String template) {
-        try {
-            return StreamUtils.copyToString(
-                    new ClassPathResource(TEMPLATE_FOLDER + File.separator + template + ".html").getInputStream(),
-                    Charset.defaultCharset());
-        } catch (IOException e) {
-            return "";//silently swallow
-        }
-    }
-
     private String getPhotoUrl(String album, String photo, boolean fullScreen) {
         return "/photo/" + album + "/" + photo + (fullScreen ? "?fullScreen=true" : "");
+    }
+
+    private String getAlbumPhotosUrl(String album) {
+        return "/album/" + album + "?list=true";
     }
 
     private String getMediaRealUrl(String album, String photo) {
@@ -247,13 +270,17 @@ public class PhotoController implements WebMvcConfigurer {
         return "<a href=\"/album/" + album + "\">" + album + "</a><br>\n";
     }
 
-    String getMediaStyle(int orientation) {
+    private String getPhotoLink(String album, String photo) {
+        return "<a href=\"" + getPhotoUrl(album, photo, false) + "\">" + photo + "</a><br>\n";
+    }
+
+    private String getMediaStyle(int orientation) {
         if (orientation == 6)
-            return "style=\"transform: rotate(90deg) scale(.67);\"";
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", ".67");
         if (orientation == 8)
-            return "style=\"transform: rotate(-90deg) scale(.67);\"";
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", ".67");
         if (orientation == 3)
-            return "style=\"transform: rotate(180deg);\"";
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "180", "1.0");
         return "";
     }
 }

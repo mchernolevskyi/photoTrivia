@@ -24,6 +24,10 @@
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(albumPhotos)">Current album</a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(nextMediaUrl)">Next&nbsp;&nbsp;&nbsp;></a>
     %(commentIfFullScreenHtmlEnd)
     <script>
@@ -46,6 +50,9 @@
                 }
                 if (event.keyCode === 38) {
                     window.location.replace("%(allAlbumsUrl)");
+                }
+                if (event.keyCode === 76) {
+                    window.location.replace("%(albumPhotos)");
                 }
             });
             %(commentIfNotFullScreenJavaScript) document.body.addEventListener("touchstart", handleTouchStart);
