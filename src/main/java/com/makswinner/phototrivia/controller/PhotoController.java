@@ -66,7 +66,7 @@ public class PhotoController implements WebMvcConfigurer {
     private String albumPhotosTemplateWithHeader;
 
     private static final int MEDIA_HEIGHT = 93;
-    private static final int MEDIA_HEIGHT_FULLSCREEN = 97;
+    private static final int MEDIA_HEIGHT_FULLSCREEN = 98;
     private static final String URL_ALL_ALBUMS = "/";
     private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
     private static final Map<String, List<String>> ALBUM_PHOTOS = new HashMap<>();
