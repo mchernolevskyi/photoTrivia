@@ -65,7 +65,7 @@ public class PhotoController implements WebMvcConfigurer {
     private String albumsTemplateWithHeader;
     private String albumPhotosTemplateWithHeader;
 
-    private static final int MEDIA_HEIGHT = 93;
+    private static final int MEDIA_HEIGHT = 92;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 98;
     private static final String URL_ALL_ALBUMS = "/";
     private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
@@ -213,7 +213,7 @@ public class PhotoController implements WebMvcConfigurer {
             String previous = photos.get(0);
             for (;iterator.hasNext();) {
                 String file = iterator.next();
-                if (file.equals(current) && iterator.hasNext())
+                if (file.equals(current))
                     return previous;
                 previous = file;
             }
@@ -280,7 +280,8 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private String getPhotoLink(String album, String photo) {
-        return "<a href=\"" + getPhotoUrl(album, photo, false) + "\">" + photo + "</a><br>\n";
+        return "<tr><th scope=\"row\"><a href=\"" + getPhotoUrl(album, photo, false)
+                + "\">" + photo + "</a></th></tr>\n";
     }
 
     private String getMediaStyle(int orientation) {

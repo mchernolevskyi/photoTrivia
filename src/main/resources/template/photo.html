@@ -1,8 +1,22 @@
 <html>
 <head>
     <title>%(title)</title>
+    <link rel="stylesheet" href="/bootstrap.min.css" />
+    <style>
+        body {background-color: %(bgcolor);}
+        a:link {
+          color: %(linkcolor);
+        }
+        a:visited {
+          color: %(vlinkcolor);
+        }
+        .btn {
+            min-width: 150px;
+        }
+
+    </style>
 </head>
-<body bgcolor="%(bgcolor)" link="%(linkcolor)" vlink="%(vlinkcolor)" onload=init()>
+<body onload=init()>
 <center>
     %(commentIfVideoHtmlStart)
     <img src="%(mediaRealUrl)" %(mediaStyle) height="%(mediaHeight)%">
@@ -10,34 +24,35 @@
     %(commentIfPhotoHtmlStart)
     <video height="%(mediaHeight)%" controls=controls><source src="%(mediaRealUrl)" type=video/mp4></video>
     %(commentIfPhotoHtmlEnd)
-    <br>
     %(commentIfFullScreenHtmlStart)
-    <a href="%(previousMediaUrl)"><&nbsp;&nbsp;&nbsp;Previous</a>
+    <br>
+    <br>
+    <a href="%(previousMediaUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true"><&nbsp;&nbsp;&nbsp;Previous</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="%(mediaUrlFullScreen)">View full screen</a>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(mediaUrlFullScreen)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">View full screen</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="%(allAlbumsUrl)">Albums</a>
+    <a href="%(allAlbumsUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Albums</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="%(albumPhotos)">Current album</a>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="%(albumPhotos)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Current album</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    <a href="%(nextMediaUrl)">Next&nbsp;&nbsp;&nbsp;></a>
+    <a href="%(nextMediaUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Next&nbsp;&nbsp;&nbsp;></a>
     %(commentIfFullScreenHtmlEnd)
+
     <script>
         function init() {
             document.body.addEventListener("keydown", function ee(event) {
-                if (event.keyCode === 32) {
-                    window.location.replace("%(nextMediaUrl)");
+                if (event.keyCode === 8) {
+                    window.location.replace("%(previousMediaUrl)");
                 }
                 if (event.keyCode === 37) {
                     window.location.replace("%(previousMediaUrl)");
+                }
+                if (event.keyCode === 32) {
+                    window.location.replace("%(nextMediaUrl)");
                 }
                 if (event.keyCode === 39) {
                     window.location.replace("%(nextMediaUrl)");
