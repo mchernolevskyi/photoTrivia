@@ -276,7 +276,7 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private String getAlbumLink(String album) {
-        return "<a href=\"/album/" + album + "\">" + album + "</a><br>\n";
+        return "<tr><th scope=\"row\"><a href=\"/album/" + album + "\">" + album + "</a></th></tr>\n";
     }
 
     private String getPhotoLink(String album, String photo) {
