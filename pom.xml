@@ -70,8 +70,6 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.8.1</version>
         </dependency>
-
-
         <!--<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -97,21 +95,8 @@
                         <phase>install</phase>
                         <goals>
                             <goal>build</goal>
-                        <!--<goal>push</goal>-->
-                    </goals>
-                    <!--<id>start</id>
-                    <phase>pre-integration-test</phase>
-                    <goals>
-                        <goal>build</goal>
-                        <goal>start</goal>
-                    </goals>
-                </execution>
-                <execution>
-                    <id>stop</id>
-                    <phase>post-integration-test</phase>
-                    <goals>
-                        <goal>stop</goal>
-                    </goals>-->
+                            <!--<goal>push</goal>-->
+                        </goals>
                     </execution>
                 </executions>
                 <configuration>
@@ -122,18 +107,9 @@
                             <build>
                                 <dockerFileDir>${project.basedir}</dockerFileDir>
                                 <args>
-                                    <JAR_FILE>target/photoTrivia-${project.version}.jar</JAR_FILE>
+                                    <JAR_FILE>target/${project.artifactId}-${project.version}.jar</JAR_FILE>
                                 </args>
                             </build>
-                            <!--<run>
-                                <ports>
-                                    <port>8888:8888</port>
-                                </ports>
-                                <wait>
-                                    <url>http://localhost:8080/wizard</url>
-                                    <time>120000</time>
-                                </wait>
-                            </run>-->
                         </image>
                     </images>
                 </configuration>
