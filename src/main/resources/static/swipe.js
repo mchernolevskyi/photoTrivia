@@ -23,23 +23,25 @@ function handleTouchMove(evt) {
     var xDiff = xDown - xUp;
     var yDiff = yDown - yUp;
 
-    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
-        if ( xDiff > 0 ) {
-            /* left swipe */
-            goNext();
+    if(Math.abs( xDiff ) + Math.abs( yDiff ) > 100) { //to deal with to short swipes
+        if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+            if ( xDiff > 0 ) {
+                /* left swipe */
+                goNext();
+            } else {
+                /* right swipe */
+                goPrevious();
+            }
         } else {
-            /* right swipe */
-            goPrevious();
+            if ( yDiff > 0 ) {
+                /* up swipe */
+                goToAlbums();
+            } else {
+                /* down swipe */
+            }
         }
-    } else {
-        if ( yDiff > 0 ) {
-            /* up swipe */
-            goToAlbums();
-        } else {
-            /* down swipe */
-        }
-    }
     /* reset values */
     xDown = null;
     yDown = null;
+    }
 };

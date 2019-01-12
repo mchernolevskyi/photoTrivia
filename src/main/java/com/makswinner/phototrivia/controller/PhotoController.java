@@ -66,7 +66,7 @@ public class PhotoController implements WebMvcConfigurer {
     private String albumPhotosTemplateWithHeader;
 
     private static final int MEDIA_HEIGHT = 92;
-    private static final int MEDIA_HEIGHT_FULLSCREEN = 98;
+    private static final int MEDIA_HEIGHT_FULLSCREEN = 100;
     private static final String URL_ALL_ALBUMS = "/";
     private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
     private static final Map<String, List<String>> ALBUM_PHOTOS = new HashMap<>();
@@ -286,9 +286,9 @@ public class PhotoController implements WebMvcConfigurer {
 
     private String getMediaStyle(int orientation) {
         if (orientation == 6)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", ".67");
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", ".66");
         if (orientation == 8)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", ".67");
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", ".66");
         if (orientation == 3)
             return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "180", "1.0");
         return "";
