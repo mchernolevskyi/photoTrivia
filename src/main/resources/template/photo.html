@@ -11,7 +11,7 @@
           color: %(vlinkcolor);
         }
         .btn {
-            min-width: 150px;
+            min-width: 120px;
         }
 
     </style>
@@ -22,22 +22,18 @@
     <img src="%(mediaRealUrl)" %(mediaStyle) height="%(mediaHeight)%">
     %(commentIfVideoHtmlEnd)
     %(commentIfPhotoHtmlStart)
-    <video height="%(mediaHeight)%" controls=controls><source src="%(mediaRealUrl)" type=video/mp4></video>
+    <video height="%(mediaHeight)%" controls=controls autoplay><source src="%(mediaRealUrl)" type=video/mp4></video>
     %(commentIfPhotoHtmlEnd)
     %(commentIfFullScreenHtmlStart)
     <br>
     <br>
     <a href="%(previousMediaUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true"><&nbsp;&nbsp;&nbsp;Previous</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(mediaUrlFullScreen)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">View full screen</a>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(allAlbumsUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Albums</a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(albumPhotos)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Current album</a>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <a href="%(nextMediaUrl)" class="btn btn-secondary btn-sm active" role="button" aria-pressed="true">Next&nbsp;&nbsp;&nbsp;></a>
     %(commentIfFullScreenHtmlEnd)

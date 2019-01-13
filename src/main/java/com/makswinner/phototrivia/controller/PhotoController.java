@@ -6,6 +6,7 @@ import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.MetadataException;
 import com.drew.metadata.exif.ExifIFD0Directory;
+import com.drew.metadata.jpeg.JpegDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -168,21 +169,26 @@ public class PhotoController implements WebMvcConfigurer {
         }
     }
 
-    private int getOrientation(String album, String photo) {
-        //TODO proper scaling, extract height width and divide
+    private int [] getExifInfo(String album, String photo) {
         File imageFile = new File(albumsPath + album + File.separator + photo);
         int orientation = 0;
+        int width = 0;
+        int height = 0;
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(imageFile);
             Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
-            //JpegDirectory jpegDirectory = metadata.getFirstDirectoryOfType(JpegDirectory.class);
+            JpegDirectory jpegDirectory = metadata.getFirstDirectoryOfType(JpegDirectory.class);
             if (directory != null) {
                 orientation = directory.getInt(ExifIFD0Directory.TAG_ORIENTATION);
+            }
+            if (jpegDirectory != null) {
+                width = jpegDirectory.getImageWidth();
+                height = jpegDirectory.getImageHeight();
             }
         } catch (MetadataException | IOException | ImageProcessingException e) {
             //silently swallow
         }
-        return orientation;
+        return new int [] { orientation, width, height };
     }
 
     private String getFilenameExtensionLowerCase(String name) {
@@ -246,7 +252,7 @@ public class PhotoController implements WebMvcConfigurer {
         boolean video = videoExtensions.contains(getFilenameExtensionLowerCase(photo));
         return photoTemplateWithHeader
                 .replace("%(mediaRealUrl)", getMediaRealUrl(album, photo))
-                .replace("%(mediaStyle)", getMediaStyle(getOrientation(album, photo)))
+                .replace("%(mediaStyle)", getMediaStyle(album, photo))
                 .replace("%(mediaHeight)", "" + mediaHeight)
                 .replace("%(previousMediaUrl)", getPhotoUrl(album, findPreviousPhoto(album, photo), fullScreen))
                 .replace("%(mediaUrlFullScreen)", getPhotoUrl(album, photo, true))
@@ -284,7 +290,12 @@ public class PhotoController implements WebMvcConfigurer {
                 + "\">" + photo + "</a></th></tr>\n";
     }
 
-    private String getMediaStyle(int orientation) {
+    private String getMediaStyle(String album, String photo) {
+        int [] exifInfo = getExifInfo(album, photo);
+        int orientation = exifInfo[0];
+        int width = exifInfo[1];
+        int height = exifInfo[2];
+        //TODO proper scaling
         if (orientation == 6)
             return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", ".66");
         if (orientation == 8)

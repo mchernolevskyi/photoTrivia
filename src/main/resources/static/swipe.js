@@ -23,7 +23,7 @@ function handleTouchMove(evt) {
     var xDiff = xDown - xUp;
     var yDiff = yDown - yUp;
 
-    if(Math.abs( xDiff ) + Math.abs( yDiff ) > 100) { //to deal with to short swipes
+    if(Math.abs( xDiff ) + Math.abs( yDiff ) > 200) { //to deal with to short swipes
         if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
             if ( xDiff > 0 ) {
                 /* left swipe */
