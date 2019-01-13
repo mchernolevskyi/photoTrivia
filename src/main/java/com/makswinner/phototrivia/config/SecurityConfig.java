@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    public static String ROLE_ADMIN = "ADMIN";
+    public static String ROLE_GUEST = "GUEST";
+
     @Value(value = "${user.admin.name}")
     private String adminUsername;
 
@@ -29,31 +32,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private String guestPassword;
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private static String ADMIN_ROLE = "ADMIN";
-    private static String GUEST_ROLE = "GUEST";
-
-    //TODO roles and albums
-//    @Override
-//    protected void configure(HttpSecurity http) throws Exception {
-//        http
-//                .authorizeRequests()
-//                    .antMatchers("/css/**").permitAll()
-//                    .antMatchers("/**").hasRole(ADMIN_ROLE);
-//                //.and()
-//                //.httpBasic();
-////                .formLogin()
-////                    .loginPage("/login")
-////                    .permitAll()
-////                    .and()
-////                .logout()
-////                    .permitAll();
-//    }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth.inMemoryAuthentication().passwordEncoder(passwordEncoder)
-                .withUser(adminUsername).password(passwordEncoder.encode(adminPassword)).roles(ADMIN_ROLE)
+                .withUser(adminUsername).password(passwordEncoder.encode(adminPassword)).roles(ROLE_ADMIN)
                 .and()
-                .withUser(guestUsername).password(passwordEncoder.encode(guestPassword)).roles(GUEST_ROLE);
+                .withUser(guestUsername).password(passwordEncoder.encode(guestPassword)).roles(ROLE_GUEST);
     }
 }

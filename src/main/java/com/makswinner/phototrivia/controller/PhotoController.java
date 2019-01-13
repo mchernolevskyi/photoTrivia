@@ -10,6 +10,8 @@ import com.drew.metadata.jpeg.JpegDirectory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,13 +25,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_ADMIN;
+import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_GUEST;
 
 /**
  * @author Dr Maksym Chernolevskyi
@@ -58,18 +58,23 @@ public class PhotoController implements WebMvcConfigurer {
     @Value(value = "${extensions.video}")
     private String videoExtensionsRaw;
 
+    @Value(value = "${user.guest.albums}")
+    private String guestAlbumsRaw;
+
     private String albumsPath;
     private String baseGalleryDir;
     private final List<String> ignoreExtensions = new LinkedList<>();
     private final List<String> videoExtensions = new LinkedList<>();
+    private final List<String> guestAlbums = new LinkedList<>();
     private String photoTemplateWithHeader;
     private String albumsTemplateWithHeader;
     private String albumPhotosTemplateWithHeader;
 
+    public static final String ROLE_PREFIX = "ROLE_";
     private static final int MEDIA_HEIGHT = 92;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 100;
     private static final String URL_ALL_ALBUMS = "/";
-    private static final String STYLE_TRANSFORM_ROTATE_SCALE = "style=\"transform: rotate(%sdeg) scale(%s);\"";
+    private static final String STYLE_TRANSFORM_ROTATE_SCALE = "transform: rotate(%sdeg) scale(%s);";
     private static final Map<String, List<String>> ALBUM_PHOTOS = new HashMap<>();
 
     @PostConstruct
@@ -78,6 +83,7 @@ public class PhotoController implements WebMvcConfigurer {
         baseGalleryDir = getBaseGalleryDir(albumsPathRaw);
         ignoreExtensions.addAll(Arrays.asList(ignoreExtensionsRaw.split(",")));
         videoExtensions.addAll(Arrays.asList(videoExtensionsRaw.split(",")));
+        guestAlbums.addAll(Arrays.asList(guestAlbumsRaw.split(",")));
         photoTemplateWithHeader = getTemplateWithHeader("template/photo.html");
         albumsTemplateWithHeader = getTemplateWithHeader("template/albums.html");
         albumPhotosTemplateWithHeader = getTemplateWithHeader("template/albumPhotos.html");
@@ -144,12 +150,22 @@ public class PhotoController implements WebMvcConfigurer {
         return renderPhoto(album, photo, fullScreen);
     }
 
-    private List<String> findAlbums() {
+    private List<String> findAllAlbums() {
         //TODO nested folders
         String[] directories = new File(albumsPath).list(
                 (current, name) -> new File(current, name).isDirectory());
         return directories != null && directories.length > 0 ?
-                Arrays.asList(directories).stream().sorted().collect(Collectors.toList()) : new LinkedList<>();
+                Arrays.asList(directories).stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())
+                : new LinkedList<>();
+    }
+
+    private List<String> findAlbumsForUser(String username) {
+        List<String> allAlbums = findAllAlbums();
+        //TODO users -> albums map
+        List<String> result = new LinkedList<>();
+        guestAlbums.stream().filter(album -> allAlbums.contains(album)).forEach(album -> result.add(album));
+        result.sort(Comparator.reverseOrder());
+        return result;
     }
 
     private List<String> findAlbumPhotos(String album) {
@@ -232,8 +248,17 @@ public class PhotoController implements WebMvcConfigurer {
     }
 
     private String getAlbumsDescription() {
+        UserDetails userDetails =
+                (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String userRole = userDetails.getAuthorities().iterator().next().getAuthority();
+        List<String> albums = new LinkedList<>();
+        if ((ROLE_PREFIX + ROLE_ADMIN).equals(userRole)) {
+            albums = findAllAlbums();
+        } else if ((ROLE_PREFIX + ROLE_GUEST).equals(userRole)) {
+            albums = findAlbumsForUser(userDetails.getUsername());
+        }
         StringBuilder description = new StringBuilder();
-        findAlbums().forEach(album -> description.append(getAlbumLink(album)));
+        albums.forEach(album -> description.append(getAlbumLink(album)));
         return description.toString();
     }
 
@@ -293,15 +318,25 @@ public class PhotoController implements WebMvcConfigurer {
     private String getMediaStyle(String album, String photo) {
         int [] exifInfo = getExifInfo(album, photo);
         int orientation = exifInfo[0];
-        int width = exifInfo[1];
-        int height = exifInfo[2];
-        //TODO proper scaling
+        float scale = getScale(orientation, exifInfo[1], exifInfo[2]);
         if (orientation == 6)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", ".66");
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", "" + scale);
         if (orientation == 8)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", ".66");
+            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", "" + scale);
         if (orientation == 3)
             return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "180", "1.0");
         return "";
+    }
+
+    private float getScale(int orientation, int width, int height) {
+        float scale = 0.66f;
+        if ((orientation == 6 || orientation == 8) && width > 0 && height > 0) {
+            if (width > height)
+                scale = (float) height / (float) width - 0.005f;
+            else {
+                scale = (float) width / (float) height - 0.005f;
+            }
+        }
+        return scale;
     }
 }
