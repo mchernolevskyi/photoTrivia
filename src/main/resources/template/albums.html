@@ -19,7 +19,7 @@
             <div class="col-md-auto">
                 <table class="table table-hover table-striped table-dark">
                     <tbody>
-                    %(albums)
+                        %(cycle:albums)<tr><th scope="row"><a href="/album/%(album)">%(album)</a></th></tr>%(cycle:albums)
                     </tbody>
                 </table>
             </div>
