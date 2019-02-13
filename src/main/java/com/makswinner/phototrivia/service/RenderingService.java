@@ -55,6 +55,7 @@ public class RenderingService implements WebMvcConfigurer {
     @Value(value = "${extensions.ignore}")
     private String ignoreExtensionsRaw;
 
+    //TODO @Value("#{'${extensions.video}'.split(',')}")
     @Value(value = "${extensions.video}")
     private String videoExtensionsRaw;
 
