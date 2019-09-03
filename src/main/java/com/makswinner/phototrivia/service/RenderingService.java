@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_ADMIN;
@@ -38,7 +39,7 @@ public class RenderingService implements WebMvcConfigurer {
     private static final int MEDIA_HEIGHT_FULLSCREEN = 100;
     private static final String STYLE_TRANSFORM_ROTATE_SCALE = "transform: rotate(%sdeg) scale(%s);";
 
-    private static final Map<String, List<String>> ALBUM_PHOTOS = new HashMap<>();
+    private static final Map<String, List<String>> ALBUM_PHOTOS = new ConcurrentHashMap<>();
 
     @Value(value = "${rendering.title}")
     private String renderingTitle;
@@ -325,4 +326,7 @@ public class RenderingService implements WebMvcConfigurer {
         return new int [] { orientation, width, height };
     }
 
+    public void reset() {
+        ALBUM_PHOTOS.clear();
+    }
 }

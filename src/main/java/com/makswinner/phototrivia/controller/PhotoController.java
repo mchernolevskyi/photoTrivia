@@ -54,4 +54,9 @@ public class PhotoController {
         return renderingService.renderPhoto(album, photo, fullScreen, URL_ALL_ALBUMS);
     }
 
+    @RequestMapping("/reset")
+    public void reset() {
+        renderingService.reset();
+    }
+
 }
