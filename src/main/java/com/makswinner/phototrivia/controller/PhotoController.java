@@ -28,8 +28,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_ADMIN;
-import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_GUEST;
+import static com.makswinner.phototrivia.config.SecurityConfig.*;
 
 /**
  * @author Dr Maksym Chernolevskyi
@@ -58,14 +57,10 @@ public class PhotoController implements WebMvcConfigurer {
     @Value(value = "${extensions.video}")
     private String videoExtensionsRaw;
 
-    @Value(value = "${user.guest.albums}")
-    private String guestAlbumsRaw;
-
     private String albumsPath;
     private String baseGalleryDir;
     private final List<String> ignoreExtensions = new LinkedList<>();
     private final List<String> videoExtensions = new LinkedList<>();
-    private final List<String> guestAlbums = new LinkedList<>();
     private String photoTemplateWithHeader;
     private String albumsTemplateWithHeader;
     private String albumPhotosTemplateWithHeader;
@@ -83,7 +78,6 @@ public class PhotoController implements WebMvcConfigurer {
         baseGalleryDir = getBaseGalleryDir(albumsPathRaw);
         ignoreExtensions.addAll(Arrays.asList(ignoreExtensionsRaw.split(",")));
         videoExtensions.addAll(Arrays.asList(videoExtensionsRaw.split(",")));
-        guestAlbums.addAll(Arrays.asList(guestAlbumsRaw.split(",")));
         photoTemplateWithHeader = getTemplateWithHeader("template/photo.html");
         albumsTemplateWithHeader = getTemplateWithHeader("template/albums.html");
         albumPhotosTemplateWithHeader = getTemplateWithHeader("template/albumPhotos.html");
@@ -159,13 +153,21 @@ public class PhotoController implements WebMvcConfigurer {
                 : new LinkedList<>();
     }
 
-    private List<String> findAlbumsForUser(String username) {
+    private List<String> findAlbumsForUser(List<String> allowedAlbums) {
         List<String> allAlbums = findAllAlbums();
-        //TODO users -> albums map
-        List<String> result = new LinkedList<>();
-        guestAlbums.stream().filter(album -> allAlbums.contains(album)).forEach(album -> result.add(album));
-        result.sort(Comparator.reverseOrder());
-        return result;
+        return allAlbums.stream()
+                .filter(album -> matches(album, allowedAlbums))
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+    }
+
+    private boolean matches(String album, List<String> allowedAlbums) {
+        for (String allowedAlbum : allowedAlbums) {
+            if ("*".equals(allowedAlbum) || album.equals(allowedAlbum)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<String> findAlbumPhotos(String album) {
@@ -250,12 +252,22 @@ public class PhotoController implements WebMvcConfigurer {
     private String getAlbumsDescription() {
         UserDetails userDetails =
                 (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String userRole = userDetails.getAuthorities().iterator().next().getAuthority();
+        String userRole = userDetails.getAuthorities().stream()
+                .filter(authority -> authority.getAuthority().startsWith("ROLE_"))
+                .map(authority -> authority.getAuthority())
+                .findFirst()
+                .orElse(ROLE_GUEST);
+        String albumsRaw = userDetails.getAuthorities().stream()
+                .filter(authority -> !authority.getAuthority().startsWith("ROLE_"))
+                .map(authority -> authority.getAuthority())
+                .findFirst()
+                .orElse("");
+        List<String> allowedAlbums = Arrays.stream(albumsRaw.split(",")).collect(Collectors.toList());
         List<String> albums = new LinkedList<>();
-        if ((ROLE_PREFIX + ROLE_ADMIN).equals(userRole)) {
+        if ((ROLE_ADMIN).equals(userRole)) {
             albums = findAllAlbums();
-        } else if ((ROLE_PREFIX + ROLE_GUEST).equals(userRole)) {
-            albums = findAlbumsForUser(userDetails.getUsername());
+        } else if ((ROLE_GUEST).equals(userRole)) {
+            albums = findAlbumsForUser(allowedAlbums);
         }
         StringBuilder description = new StringBuilder();
         albums.forEach(album -> description.append(getAlbumLink(album)));
