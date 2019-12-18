@@ -65,7 +65,6 @@ public class PhotoController implements WebMvcConfigurer {
     private String albumsTemplateWithHeader;
     private String albumPhotosTemplateWithHeader;
 
-    public static final String ROLE_PREFIX = "ROLE_";
     private static final int MEDIA_HEIGHT = 92;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 100;
     private static final String URL_ALL_ALBUMS = "/";
