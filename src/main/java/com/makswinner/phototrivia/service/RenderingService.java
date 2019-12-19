@@ -144,14 +144,26 @@ public class RenderingService implements WebMvcConfigurer {
     private List<String> getAlbums() {
         UserDetails userDetails =
                 (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String userRole = userDetails.getAuthorities().iterator().next().getAuthority();
-        if ((ROLE_PREFIX + ROLE_ADMIN).equals(userRole)) {
-            return findAllAlbums();
-        } else if ((ROLE_PREFIX + ROLE_GUEST).equals(userRole)) {
-            return findAlbumsForUser(userDetails.getUsername());
+        String userRole = userDetails.getAuthorities().stream()
+                .filter(authority -> authority.getAuthority().startsWith(ROLE_PREFIX))
+                .map(authority -> authority.getAuthority())
+                .findFirst()
+                .orElse(ROLE_GUEST);
+        String albumsRaw = userDetails.getAuthorities().stream()
+                .filter(authority -> !authority.getAuthority().startsWith(ROLE_PREFIX))
+                .map(authority -> authority.getAuthority())
+                .findFirst()
+                .orElse("");
+        List<String> allowedAlbums = Arrays.stream(albumsRaw.split(",")).collect(Collectors.toList());
+        List<String> albums = new LinkedList<>();
+        if ((ROLE_ADMIN).equals(userRole)) {
+            albums = findAllAlbums();
+        } else if ((ROLE_GUEST).equals(userRole)) {
+            albums = findAlbumsForUser(allowedAlbums);
         } else {
-            return new LinkedList<>();
+            albums = new ArrayList<>();
         }
+        return albums;
     }
 
     public String renderAlbumPhotos(String album) {
@@ -242,13 +254,21 @@ public class RenderingService implements WebMvcConfigurer {
                 : new LinkedList<>();
     }
 
-    private List<String> findAlbumsForUser(String username) {
+    private List<String> findAlbumsForUser(List<String> allowedAlbums) {
         List<String> allAlbums = findAllAlbums();
-        //TODO users -> albums map
-        List<String> result = new LinkedList<>();
-        guestAlbums.stream().filter(album -> allAlbums.contains(album)).forEach(album -> result.add(album));
-        result.sort(Comparator.reverseOrder());
-        return result;
+        return allAlbums.stream()
+                .filter(album -> matches(album, allowedAlbums))
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+    }
+
+    private boolean matches(String album, List<String> allowedAlbums) {
+        for (String allowedAlbum : allowedAlbums) {
+            if ("*".equals(allowedAlbum) || album.equalsIgnoreCase(allowedAlbum)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<String> findAlbumPhotos(String album) {
