@@ -19,7 +19,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-    public static String USER_ADMIN = "admin";
+    private static String USER_ADMIN = "admin";
     public static String ROLE_ADMIN = "ROLE_ADMIN";
     public static String ROLE_GUEST = "ROLE_GUEST";
 

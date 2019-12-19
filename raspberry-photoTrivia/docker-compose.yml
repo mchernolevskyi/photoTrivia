@@ -3,9 +3,10 @@ version: '3.1'
 services:
 
   photoTrivia:
-    image: makswinner/phototrivia:1.0-SNAPSHOT
+    image: makswinner/phototrivia:1.1-SNAPSHOT
     restart: always
     ports:
     - 8888:8888
     volumes:
     - /mnt/photos:/photos
+    - ./application.properties:/application.properties
