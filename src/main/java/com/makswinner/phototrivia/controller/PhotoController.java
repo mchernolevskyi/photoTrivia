@@ -21,7 +21,7 @@ public class PhotoController {
     private RenderingService renderingService;
 
     @RequestMapping(URL_ALL_ALBUMS)
-    public String showAll() {
+    public String showAllAlbums() {
         return renderingService.renderAlbums();
     }
 

@@ -1,4 +1,2 @@
-cd ..
-sudo docker build raspberry-photoTrivia/ --tag makswinner/phototrivia:1.0-SNAPSHOT
-cd raspberry-photoTrivia
+sudo docker build . --tag makswinner/phototrivia:1.1-SNAPSHOT
 sudo docker-compose up -d

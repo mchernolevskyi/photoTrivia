@@ -60,9 +60,6 @@ public class RenderingService implements WebMvcConfigurer {
     @Value(value = "${extensions.video}")
     private String videoExtensionsRaw;
 
-    @Value(value = "${user.guest.albums}")
-    private String guestAlbumsRaw;
-
     @Value(value = "${albums.path}")
     private String albumsPathRaw;
 
@@ -73,7 +70,6 @@ public class RenderingService implements WebMvcConfigurer {
     private String albumPhotosTemplateWithHeader;
     private final List<String> ignoreExtensions = new LinkedList<>();
     private final List<String> videoExtensions = new LinkedList<>();
-    private final List<String> guestAlbums = new LinkedList<>();
 
     @PostConstruct
     private void init() {
@@ -81,7 +77,6 @@ public class RenderingService implements WebMvcConfigurer {
         baseGalleryDir = getBaseGalleryDir(albumsPathRaw);
         ignoreExtensions.addAll(Arrays.asList(ignoreExtensionsRaw.split(",")));
         videoExtensions.addAll(Arrays.asList(videoExtensionsRaw.split(",")));
-        guestAlbums.addAll(Arrays.asList(guestAlbumsRaw.split(",")));
         photoTemplateWithHeader = getTemplateWithHeader("template/photo.html");
         albumsTemplateWithHeader = getTemplateWithHeader("template/albums.html");
         albumPhotosTemplateWithHeader = getTemplateWithHeader("template/albumPhotos.html");
@@ -155,7 +150,7 @@ public class RenderingService implements WebMvcConfigurer {
                 .findFirst()
                 .orElse("");
         List<String> allowedAlbums = Arrays.stream(albumsRaw.split(",")).collect(Collectors.toList());
-        List<String> albums = new LinkedList<>();
+        List<String> albums;
         if ((ROLE_ADMIN).equals(userRole)) {
             albums = findAllAlbums();
         } else if ((ROLE_GUEST).equals(userRole)) {
@@ -246,7 +241,6 @@ public class RenderingService implements WebMvcConfigurer {
 
 
     private List<String> findAllAlbums() {
-        //TODO nested folders
         String[] directories = new File(albumsPath).list(
                 (current, name) -> new File(current, name).isDirectory());
         return directories != null && directories.length > 0 ?
