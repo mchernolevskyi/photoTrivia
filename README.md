@@ -7,7 +7,7 @@ especially on low-power machines like Raspberry Pi.
 Prepare your folder with photos (base folder should contain single level folders with photos and videos
 with no spaces in file/directory names), set the base folder as *albums.path* in *application.properties* and run
 
-`java -jar photoTrivia-1.1-SNAPSHOT.jar -Xmx32M`
+`java -jar photoTrivia-1.2-SNAPSHOT.jar -Xmx32M`
 
 to start photoTrivia on port 8888. 
 
