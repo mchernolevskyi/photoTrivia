@@ -238,9 +238,7 @@ public class RenderingService implements WebMvcConfigurer {
     }
 
     private String getPhotoUrl(String album, String photo, boolean fullScreen) {
-        return "/photo/" + album + "/"
-                + photo
-                + (fullScreen ? "?fullScreen=true" : "");
+        return "/photo/" + album + "/" + photo + (fullScreen ? "?fullScreen=true" : "");
     }
 
     public static String encode(String url) {
