@@ -51,7 +51,7 @@ public class PhotoController {
     public String showPhoto(@PathVariable("album") String album,
                             @PathVariable("photo") String photo,
                             @RequestParam(value = "fullScreen", required = false) boolean fullScreen) {
-        return renderingService.renderPhoto(album, photo, fullScreen, URL_ALL_ALBUMS);
+        return renderingService.renderPhoto(album, RenderingService.encode(photo), fullScreen, URL_ALL_ALBUMS);
     }
 
     @RequestMapping("/reset")

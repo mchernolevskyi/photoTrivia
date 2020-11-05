@@ -20,6 +20,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -206,10 +208,6 @@ public class RenderingService implements WebMvcConfigurer {
         return "/album/" + album + "?list=true";
     }
 
-    private String getMediaRealUrl(String album, String photo) {
-        return "/" + baseGalleryDir + "/" + album + "/" + photo;
-    }
-
     private String getMediaStyle(String album, String photo) {
         int [] exifInfo = getExifInfo(album, photo);
         int orientation = exifInfo[0];
@@ -235,10 +233,23 @@ public class RenderingService implements WebMvcConfigurer {
         return scale;
     }
 
-    private String getPhotoUrl(String album, String photo, boolean fullScreen) {
-        return "/photo/" + album + "/" + photo + (fullScreen ? "?fullScreen=true" : "");
+    private String getMediaRealUrl(String album, String photo) {
+        return "/" + baseGalleryDir + "/" + album + "/" + photo;
     }
 
+    private String getPhotoUrl(String album, String photo, boolean fullScreen) {
+        return "/photo/" + album + "/"
+                + photo
+                + (fullScreen ? "?fullScreen=true" : "");
+    }
+
+    public static String encode(String url) {
+        try {
+            return URLEncoder.encode(url,"UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Failed to encode");
+        }
+    }
 
     private List<String> findAllAlbums() {
         String[] directories = new File(albumsPath).list(
@@ -267,51 +278,45 @@ public class RenderingService implements WebMvcConfigurer {
 
     private List<String> findAlbumPhotos(String album) {
         List<String> photos = ALBUM_PHOTOS.get(album);
-        if (photos != null) {
-            return photos;
-        } else {
+        if (photos == null) {
             File dir = new File(albumsPath + album);
             String[] files = dir.list((current, name) -> {
                 File imageFile = new File(current, name);
                 return imageFile.isFile()
                         && !ignoreExtensions.contains(getFilenameExtensionLowerCase(name));
             });
-            photos = Arrays.asList(files).stream().sorted().collect(Collectors.toList());
+            photos = Arrays.asList(files).stream().sorted().map(RenderingService::encode).collect(Collectors.toList());
             ALBUM_PHOTOS.put(album, photos);
-            return photos;
         }
+        return photos;
     }
 
     public String findNextPhoto(String album, String current) {
         List<String> photos = findAlbumPhotos(album);
-        if (current == null) {
-            return photos.get(0);
-        } else {
+        if (current != null) {
             Iterator<String> iterator = photos.iterator();
-            for (;iterator.hasNext();) {
+            for (; iterator.hasNext(); ) {
                 String file = iterator.next();
                 if (file.equals(current) && iterator.hasNext())
                     return iterator.next();
             }
-            return photos.get(0);
         }
+        return photos.get(0);
     }
 
     private String findPreviousPhoto(String album, String current) {
         List<String> photos = findAlbumPhotos(album);
-        if (current == null) {
-            return photos.get(0);
-        } else {
+        if (current != null) {
             Iterator<String> iterator = photos.iterator();
             String previous = photos.size() > 1 ? photos.get(photos.size() - 1) : photos.get(0);
-            for (;iterator.hasNext();) {
+            for (; iterator.hasNext(); ) {
                 String file = iterator.next();
                 if (file.equals(current))
                     return previous;
                 previous = file;
             }
-            return photos.get(0);
         }
+        return photos.get(0);
     }
 
     private String getFilenameExtensionLowerCase(String name) {
