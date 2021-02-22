@@ -37,9 +37,9 @@ import static com.makswinner.phototrivia.config.SecurityConfig.ROLE_GUEST;
 @Configuration
 public class RenderingService implements WebMvcConfigurer {
     private static final String ROLE_PREFIX = "ROLE_";
-    private static final int MEDIA_HEIGHT = 92;
+    private static final int MEDIA_HEIGHT = 90;
     private static final int MEDIA_HEIGHT_FULLSCREEN = 100;
-    private static final String STYLE_TRANSFORM_ROTATE_SCALE = "transform: rotate(%sdeg) scale(%s);";
+    //private static final String STYLE_TRANSFORM_ROTATE_SCALE = "transform: rotate(%sdeg) scale(%s);";
 
     private static final Map<String, List<String>> ALBUM_PHOTOS = new ConcurrentHashMap<>();
 
@@ -187,7 +187,7 @@ public class RenderingService implements WebMvcConfigurer {
         boolean video = videoExtensions.contains(getFilenameExtensionLowerCase(photo));
         return photoTemplateWithHeader
                 .replace("%(mediaRealUrl)", getMediaRealUrl(album, photo))
-                .replace("%(mediaStyle)", getMediaStyle(album, photo))
+                .replace("%(mediaStyle)", "")//getMediaStyle(album, photo))
                 .replace("%(mediaHeight)", "" + mediaHeight)
                 .replace("%(previousMediaUrl)", getPhotoUrl(album, findPreviousPhoto(album, photo), fullScreen))
                 .replace("%(mediaUrlFullScreen)", getPhotoUrl(album, photo, true))
@@ -208,18 +208,18 @@ public class RenderingService implements WebMvcConfigurer {
         return "/album/" + album + "?list=true";
     }
 
-    private String getMediaStyle(String album, String photo) {
-        int [] exifInfo = getExifInfo(album, photo);
-        int orientation = exifInfo[0];
-        float scale = getScale(orientation, exifInfo[1], exifInfo[2]);
-        if (orientation == 6)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", "" + scale);
-        if (orientation == 8)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", "" + scale);
-        if (orientation == 3)
-            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "180", "1.0");
-        return "";
-    }
+    //private String getMediaStyle(String album, String photo) {
+//        int [] exifInfo = getExifInfo(album, photo);
+//        int orientation = exifInfo[0];
+//        float scale = getScale(orientation, exifInfo[1], exifInfo[2]);
+//        if (orientation == 6)
+//            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "90", "" + scale);
+//        if (orientation == 8)
+//            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "-90", "" + scale);
+//        if (orientation == 3)
+//            return String.format(STYLE_TRANSFORM_ROTATE_SCALE, "180", "1.0");
+//        return "";
+//    }
 
     private float getScale(int orientation, int width, int height) {
         float scale = 0.66f;
