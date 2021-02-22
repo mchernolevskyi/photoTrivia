@@ -185,6 +185,7 @@ public class RenderingService implements WebMvcConfigurer {
     public String renderPhoto(String album, String photo, boolean fullScreen, String urlAllAlbums) {
         int mediaHeight = fullScreen ? MEDIA_HEIGHT_FULLSCREEN : MEDIA_HEIGHT;
         boolean video = videoExtensions.contains(getFilenameExtensionLowerCase(photo));
+        Object o = getExifInfo(album, photo);
         return photoTemplateWithHeader
                 .replace("%(mediaRealUrl)", getMediaRealUrl(album, photo))
                 .replace("%(mediaStyle)", "")//getMediaStyle(album, photo))
@@ -321,13 +322,25 @@ public class RenderingService implements WebMvcConfigurer {
         return name.substring(name.lastIndexOf(".") + 1).toLowerCase();
     }
 
-    private int [] getExifInfo(String album, String photo) {
+    private Object [] getExifInfo(String album, String photo) {
         File imageFile = new File(albumsPath + album + File.separator + photo);
         int orientation = 0;
         int width = 0;
         int height = 0;
+        Map<Object,Object> allExifTags = new HashMap<>();
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(imageFile);
+            for (Directory directory : metadata.getDirectories()) {
+                allExifTags.putAll(directory.getTags().stream().collect(
+                        Collectors.toMap(
+                                tag -> tag.getTagName(),
+                                tag -> Optional.ofNullable(directory.getString(tag.getTagType())).orElse(""),
+                                (tag1, tag2) -> {
+                                    System.out.println("Exif duplicate key found: " + tag1);
+                                    return tag1;
+                                }
+                                )));
+            }
             Directory directory = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
             JpegDirectory jpegDirectory = metadata.getFirstDirectoryOfType(JpegDirectory.class);
             if (directory != null) {
@@ -340,7 +353,7 @@ public class RenderingService implements WebMvcConfigurer {
         } catch (MetadataException | IOException | ImageProcessingException e) {
             //silently swallow
         }
-        return new int [] { orientation, width, height };
+        return new Object [] { orientation, width, height , allExifTags };
     }
 
     public void reset() {
